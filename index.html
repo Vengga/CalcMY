@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
+<meta name="theme-color" content="#0f1117"/>
+<meta name="description" content="CalcMY — Smart Malaysian Finance Calculator. EPF, PTPTN, PCB Tax, Salary, Loan, Fuel & more. No internet needed."/>
+<title>CalcMY — Smart Finance Calculator MY</title>
+<link rel="manifest" href="manifest.json"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0f1117;--bg2:#161920;--bg3:#1d2028;--card:#1a1d26;--card2:#20232e;
+  --border:#ffffff0d;--border2:#ffffff18;
+  --accent:#00d68f;--accent2:#ff6b6b;--accent3:#4d9fff;--accent4:#ffc107;
+  --text:#f0f0f8;--muted:#7a7d94;--muted2:#3a3d50;
+  --mono:'DM Mono',monospace;--sans:'Plus Jakarta Sans',sans-serif;
+  --radius:14px;--radius-sm:8px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);overflow:hidden}
+
+/* VAULT SCREEN */
+#vault-screen{position:fixed;inset:0;background:#000;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:32px;transition:opacity .5s}
+#vault-screen.hidden{opacity:0;pointer-events:none}
+.vault-logo{font-family:var(--mono);font-size:28px;font-weight:500;color:#fff;letter-spacing:.1em;opacity:.3}
+.vault-subtitle{font-size:13px;color:#333;font-family:var(--mono);letter-spacing:.08em}
+.vault-dots{display:flex;gap:14px}
+.vault-dot{width:18px;height:18px;border-radius:50%;border:2px solid #333;transition:all .2s}
+.vault-dot.filled{background:var(--accent);border-color:var(--accent);box-shadow:0 0 12px var(--accent)}
+.vault-numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:220px}
+.vault-key{background:#111;border:1px solid #222;border-radius:12px;padding:18px;font-size:22px;font-family:var(--mono);color:#fff;cursor:pointer;text-align:center;transition:all .15s;user-select:none}
+.vault-key:active{background:#1a1a1a;transform:scale(.95)}
+.vault-key.del{font-size:16px;color:#666}
+.vault-wrong{animation:shake .4s ease}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+
+/* MEDIA VAULT */
+#media-vault{position:fixed;inset:0;background:#000;z-index:9998;display:none;flex-direction:column}
+#media-vault.show{display:flex}
+.mv-header{padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #111}
+.mv-title{font-family:var(--mono);font-size:14px;color:#666;letter-spacing:.06em}
+.mv-close{background:transparent;border:1px solid #222;color:#444;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-family:var(--mono);transition:all .2s}
+.mv-close:hover{color:#fff;border-color:#444}
+.mv-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:24px}
+.mv-empty{text-align:center}
+.mv-empty-icon{font-size:48px;margin-bottom:16px;opacity:.2}
+.mv-empty-title{font-size:16px;color:#333;margin-bottom:8px}
+.mv-empty-sub{font-size:13px;color:#222;line-height:1.6;max-width:260px;margin:0 auto}
+.mv-upload-btn{background:transparent;border:1px dashed #222;color:#333;padding:12px 28px;border-radius:10px;cursor:pointer;font-size:13px;font-family:var(--sans);transition:all .2s;margin-top:8px}
+.mv-upload-btn:hover{border-color:#444;color:#555}
+.mv-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;max-width:400px;overflow-y:auto}
+.mv-item{aspect-ratio:1;background:#111;border-radius:8px;overflow:hidden;position:relative;cursor:pointer}
+.mv-item img,.mv-item video{width:100%;height:100%;object-fit:cover}
+.mv-item-del{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.7);border:none;color:#ff6b6b;border-radius:50%;width:22px;height:22px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+/* APP LAYOUT */
+#app{height:100%;display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:relative}
+
+/* HEADER */
+.header{padding:16px 20px 12px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.header-logo{font-family:var(--mono);font-size:18px;font-weight:500;color:var(--accent);letter-spacing:-.02em}
+.header-logo span{color:var(--muted)}
+.fuel-pill{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border2);border-radius:999px;padding:5px 12px;cursor:pointer;transition:all .2s}
+.fuel-pill:active{transform:scale(.97)}
+.fuel-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse2 2s infinite}
+@keyframes pulse2{0%,100%{opacity:1}50%{opacity:.3}}
+.fuel-pill-text{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.fuel-pill-price{font-family:var(--mono);font-size:11px;color:var(--accent);font-weight:500}
+
+/* NAV GRID */
+.nav-scroll{padding:0 16px 8px;flex-shrink:0;overflow-x:auto;scrollbar-width:none}
+.nav-scroll::-webkit-scrollbar{display:none}
+.nav-grid{display:flex;gap:8px;width:max-content}
+.nav-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:12px;cursor:pointer;transition:all .2s;min-width:64px}
+.nav-btn.active{background:rgba(0,214,143,.1);border-color:rgba(0,214,143,.3)}
+.nav-btn-icon{font-size:20px}
+.nav-btn-label{font-size:10px;color:var(--muted);white-space:nowrap;font-weight:500}
+.nav-btn.active .nav-btn-label{color:var(--accent)}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:12px 16px 100px;scrollbar-width:none}
+.content::-webkit-scrollbar{display:none}
+
+/* TOOL PANELS */
+.tool-panel{display:none;animation:fadeIn .2s ease}
+.tool-panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px}
+.card-title{font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card-title-icon{font-size:16px}
+
+/* INPUTS */
+.field{margin-bottom:12px}
+.field-label{font-size:12px;color:var(--muted);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.field-label span{font-family:var(--mono);font-size:11px;color:var(--accent)}
+.input-wrap{position:relative}
+.prefix{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:13px;color:var(--muted);pointer-events:none}
+input[type=number],input[type=text],select{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:11px 14px;font-family:var(--sans);font-size:15px;color:var(--text);outline:none;transition:border-color .2s;-webkit-appearance:none;appearance:none}
+input[type=number].has-prefix,input[type=text].has-prefix{padding-left:32px}
+input[type=number]:focus,input[type=text]:focus,select:focus{border-color:var(--accent)}
+input[type=number]::placeholder{color:var(--muted2)}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;cursor:pointer}
+select option{background:#1d2028}
+
+/* TOGGLE ROW */
+.toggle-row{display:flex;gap:6px;margin-bottom:12px}
+.toggle-opt{flex:1;padding:9px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);text-align:center;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;color:var(--muted)}
+.toggle-opt.active{background:rgba(0,214,143,.12);border-color:rgba(0,214,143,.4);color:var(--accent)}
+
+/* RESULT BOX */
+.result-box{background:linear-gradient(135deg,rgba(0,214,143,.08),rgba(0,214,143,.03));border:1px solid rgba(0,214,143,.2);border-radius:var(--radius);padding:18px;margin-bottom:14px}
+.result-main-label{font-size:12px;color:var(--muted);margin-bottom:4px}
+.result-main-value{font-family:var(--mono);font-size:32px;font-weight:500;color:var(--accent);letter-spacing:-.02em}
+.result-main-unit{font-size:14px;color:var(--muted);margin-left:4px}
+.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.result-item{background:var(--bg3);border-radius:var(--radius-sm);padding:12px}
+.result-item-label{font-size:11px;color:var(--muted);margin-bottom:4px}
+.result-item-value{font-family:var(--mono);font-size:16px;font-weight:500;color:var(--text)}
+.result-item-value.green{color:var(--accent)}
+.result-item-value.red{color:var(--accent2)}
+.result-item-value.blue{color:var(--accent3)}
+
+/* CALC BUTTON */
+.calc-btn{width:100%;background:var(--accent);color:#000;font-family:var(--sans);font-size:15px;font-weight:800;padding:14px;border-radius:var(--radius-sm);border:none;cursor:pointer;transition:all .2s;letter-spacing:-.01em;margin-top:4px}
+.calc-btn:active{transform:scale(.98);background:#00b87a}
+.calc-btn.secondary{background:var(--bg3);color:var(--text);border:1px solid var(--border2);font-weight:600;margin-top:8px}
+
+/* TABLE */
+.amort-table{width:100%;border-collapse:collapse;font-size:12px;font-family:var(--mono)}
+.amort-table th{padding:8px;text-align:left;color:var(--muted);border-bottom:1px solid var(--border2);font-weight:500}
+.amort-table td{padding:8px;border-bottom:1px solid var(--border)}
+.amort-table tr:last-child td{border-bottom:none}
+.amort-table .green{color:var(--accent)}
+.amort-table .red{color:var(--accent2)}
+
+/* CALCULATOR */
+.calc-display{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;min-height:80px;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-end}
+.calc-expr{font-family:var(--mono);font-size:13px;color:var(--muted);min-height:20px;word-break:break-all;text-align:right}
+.calc-val{font-family:var(--mono);font-size:34px;font-weight:500;color:var(--text);word-break:break-all;text-align:right;line-height:1.1}
+.calc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.ck{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0;height:58px;font-family:var(--mono);font-size:18px;color:var(--text);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;font-weight:500;border:none}
+.ck:active{transform:scale(.93)}
+.ck.op{color:var(--accent3);background:rgba(77,159,255,.08)}
+.ck.fn{color:var(--muted);font-size:14px;background:var(--bg3)}
+.ck.eq{background:var(--accent);color:#000;font-size:22px}
+.ck.eq:active{background:#00b87a}
+.ck.zero{grid-column:span 2}
+.ck.del-btn{color:var(--accent2)}
+
+/* FUEL MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex;animation:slideUp .25s ease}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.modal-sheet{background:var(--bg2);border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:430px;border-top:1px solid var(--border2)}
+.modal-handle{width:36px;height:4px;background:var(--border2);border-radius:4px;margin:0 auto 20px}
+.modal-title{font-size:15px;font-weight:700;margin-bottom:4px}
+.modal-sub{font-size:12px;color:var(--muted);margin-bottom:20px}
+.fuel-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.fuel-label{font-size:13px;font-weight:600;flex:1}
+.fuel-badge{font-size:10px;padding:2px 8px;border-radius:4px;font-family:var(--mono)}
+.fb-ron95{background:rgba(0,214,143,.1);color:var(--accent)}
+.fb-ron97{background:rgba(77,159,255,.1);color:var(--accent3)}
+.fb-diesel{background:rgba(255,193,7,.1);color:var(--accent4)}
+.fuel-input-wrap{display:flex;align-items:center;gap:6px}
+.fuel-rm{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.fuel-inp{width:80px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:8px 10px;font-family:var(--mono);font-size:15px;color:var(--text);outline:none;text-align:center}
+.fuel-inp:focus{border-color:var(--accent)}
+.fuel-updated{font-family:var(--mono);font-size:10px;color:var(--muted2);text-align:center;margin-top:12px}
+
+/* BMI GAUGE */
+.bmi-gauge{position:relative;height:90px;margin:12px 0}
+.bmi-gauge svg{width:100%;height:100%}
+.bmi-label-row{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:-8px;padding:0 4px}
+
+/* TOAST */
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--card2);border:1px solid var(--border2);color:var(--text);font-size:13px;padding:10px 20px;border-radius:999px;z-index:300;opacity:0;transition:all .3s;white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* BOTTOM NAV (mobile feel) */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(15,17,23,.95);backdrop-filter:blur(20px);border-top:1px solid var(--border);padding:8px 0 20px;z-index:100;display:flex;justify-content:space-around}
+.bn-btn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 16px;cursor:pointer;transition:all .2s;background:transparent;border:none}
+.bn-icon{font-size:20px;line-height:1}
+.bn-label{font-size:10px;color:var(--muted);font-weight:500}
+.bn-btn.active .bn-label{color:var(--accent)}
+
+/* SECTION LABEL */
+.section-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted2);margin:16px 0 8px}
+
+/* TAX BAND TABLE */
+.band-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.band-row:last-child{border-bottom:none}
+.band-range{color:var(--muted);font-family:var(--mono);font-size:12px}
+.band-rate{font-family:var(--mono);font-weight:500}
+.band-row.active-band{background:rgba(0,214,143,.06);padding:8px 10px;border-radius:6px;margin:0 -10px;border-bottom:none}
+.band-row.active-band .band-rate{color:var(--accent)}
+
+/* SALARY BREAKDOWN BAR */
+.breakdown-bar{height:8px;border-radius:4px;background:var(--bg3);overflow:hidden;display:flex;margin:8px 0}
+.bb-seg{height:100%;transition:width .4s ease}
+.bb-legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.bb-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+.bb-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+
+/* AMORT SCROLL */
+.amort-wrap{overflow-x:auto;margin-top:8px}
+.amort-wrap::-webkit-scrollbar{height:3px}
+.amort-wrap::-webkit-scrollbar-thumb{background:var(--muted2);border-radius:2px}
+
+/* INFO CHIP */
+.info-chip{display:inline-flex;align-items:center;gap:5px;background:rgba(0,214,143,.07);border:1px solid rgba(0,214,143,.15);border-radius:6px;padding:5px 10px;font-size:11px;color:var(--accent);font-family:var(--mono);margin-bottom:12px}
+
+/* SAVINGS TIP */
+.tip-box{background:rgba(77,159,255,.06);border:1px solid rgba(77,159,255,.15);border-radius:var(--radius-sm);padding:14px;margin-top:10px}
+.tip-label{font-size:11px;color:var(--accent3);font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
+.tip-text{font-size:13px;color:var(--text);line-height:1.5}
+</style>
+</head>
+<body>
+
+<!-- VAULT LOCK SCREEN -->
+<div id="vault-screen">
+  <div class="vault-logo">CalcMY</div>
+  <div class="vault-subtitle">enter pin to unlock</div>
+  <div class="vault-dots" id="vault-dots">
+    <div class="vault-dot" id="vd0"></div>
+    <div class="vault-dot" id="vd1"></div>
+    <div class="vault-dot" id="vd2"></div>
+    <div class="vault-dot" id="vd3"></div>
+  </div>
+  <div class="vault-numpad">
+    <button class="vault-key" onclick="vaultKey('1')">1</button>
+    <button class="vault-key" onclick="vaultKey('2')">2</button>
+    <button class="vault-key" onclick="vaultKey('3')">3</button>
+    <button class="vault-key" onclick="vaultKey('4')">4</button>
+    <button class="vault-key" onclick="vaultKey('5')">5</button>
+    <button class="vault-key" onclick="vaultKey('6')">6</button>
+    <button class="vault-key" onclick="vaultKey('7')">7</button>
+    <button class="vault-key" onclick="vaultKey('8')">8</button>
+    <button class="vault-key" onclick="vaultKey('9')">9</button>
+    <button class="vault-key fn del" onclick="vaultKey('del')">⌫</button>
+    <button class="vault-key" onclick="vaultKey('0')">0</button>
+    <button class="vault-key fn" onclick="vaultKey('skip')" style="font-size:12px;color:#333">skip</button>
+  </div>
+</div>
+
+<!-- MEDIA VAULT -->
+<div id="media-vault">
+  <div class="mv-header">
+    <div class="mv-title">// PRIVATE VAULT</div>
+    <button class="mv-close" onclick="closeMediaVault()">← back to calc</button>
+  </div>
+  <div class="mv-body">
+    <div class="mv-empty" id="mv-empty">
+      <div class="mv-empty-icon">🔒</div>
+      <div class="mv-empty-title" style="color:#333">Vault is empty</div>
+      <div class="mv-empty-sub" style="color:#222">Add photos or videos. Only accessible with your 4-digit PIN.</div>
+      <input type="file" id="mv-file-input" accept="image/*,video/*" multiple style="display:none" onchange="addToVault(this)"/>
+      <button class="mv-upload-btn" onclick="document.getElementById('mv-file-input').click()">+ Add media</button>
+    </div>
+    <div class="mv-grid" id="mv-grid" style="display:none"></div>
+    <input type="file" id="mv-file-input2" accept="image/*,video/*" multiple style="display:none" onchange="addToVault(this)"/>
+    <button class="mv-upload-btn" id="mv-add-btn" style="display:none" onclick="document.getElementById('mv-file-input2').click()">+ Add more</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <div class="header">
+    <div class="header-logo">Calc<span>MY</span></div>
+    <div class="fuel-pill" onclick="openFuelModal()">
+      <div class="fuel-dot"></div>
+      <div class="fuel-pill-text">RON95</div>
+      <div class="fuel-pill-price" id="header-ron95">RM 2.05</div>
+    </div>
+  </div>
+
+  <div class="nav-scroll">
+    <div class="nav-grid" id="nav-grid">
+      <div class="nav-btn active" onclick="showTool('calc',this)"><div class="nav-btn-icon">🔢</div><div class="nav-btn-label">Calc</div></div>
+      <div class="nav-btn" onclick="showTool('loan',this)"><div class="nav-btn-icon">🏠</div><div class="nav-btn-label">Loan</div></div>
+      <div class="nav-btn" onclick="showTool('salary',this)"><div class="nav-btn-icon">💼</div><div class="nav-btn-label">Salary</div></div>
+      <div class="nav-btn" onclick="showTool('epf',this)"><div class="nav-btn-icon">💰</div><div class="nav-btn-label">EPF</div></div>
+      <div class="nav-btn" onclick="showTool('ptptn',this)"><div class="nav-btn-icon">🎓</div><div class="nav-btn-label">PTPTN</div></div>
+      <div class="nav-btn" onclick="showTool('tax',this)"><div class="nav-btn-icon">📊</div><div class="nav-btn-label">PCB Tax</div></div>
+      <div class="nav-btn" onclick="showTool('sst',this)"><div class="nav-btn-icon">🛒</div><div class="nav-btn-label">SST</div></div>
+      <div class="nav-btn" onclick="showTool('fuel',this)"><div class="nav-btn-icon">⛽</div><div class="nav-btn-label">Fuel</div></div>
+      <div class="nav-btn" onclick="showTool('bmi',this)"><div class="nav-btn-icon">⚖️</div><div class="nav-btn-label">BMI</div></div>
+      <div class="nav-btn" onclick="showTool('bill',this)"><div class="nav-btn-icon">🍽️</div><div class="nav-btn-label">Bill Split</div></div>
+      <div class="nav-btn" onclick="showTool('discount',this)"><div class="nav-btn-icon">🏷️</div><div class="nav-btn-label">Discount</div></div>
+      <div class="nav-btn" onclick="showTool('date',this)"><div class="nav-btn-icon">📅</div><div class="nav-btn-label">Date</div></div>
+      <div class="nav-btn" onclick="showTool('unit',this)"><div class="nav-btn-icon">📏</div><div class="nav-btn-label">Units</div></div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- CALCULATOR -->
+    <div class="tool-panel active" id="panel-calc">
+      <div class="calc-display">
+        <div class="calc-expr" id="calc-expr"></div>
+        <div class="calc-val" id="calc-val">0</div>
+      </div>
+      <div class="card-title" style="margin-bottom:8px"><span class="card-title-icon">🔢</span> Standard</div>
+      <div class="calc-grid">
+        <button class="ck fn" onclick="calcFn('C')">AC</button>
+        <button class="ck fn" onclick="calcFn('+/-')">+/-</button>
+        <button class="ck fn" onclick="calcFn('%')">%</button>
+        <button class="ck op" onclick="calcFn('÷')">÷</button>
+        <button class="ck" onclick="calcFn('7')">7</button>
+        <button class="ck" onclick="calcFn('8')">8</button>
+        <button class="ck" onclick="calcFn('9')">9</button>
+        <button class="ck op" onclick="calcFn('×')">×</button>
+        <button class="ck" onclick="calcFn('4')">4</button>
+        <button class="ck" onclick="calcFn('5')">5</button>
+        <button class="ck" onclick="calcFn('6')">6</button>
+        <button class="ck op" onclick="calcFn('-')">-</button>
+        <button class="ck" onclick="calcFn('1')">1</button>
+        <button class="ck" onclick="calcFn('2')">2</button>
+        <button class="ck" onclick="calcFn('3')">3</button>
+        <button class="ck op" onclick="calcFn('+')">+</button>
+        <button class="ck zero" onclick="calcFn('0')">0</button>
+        <button class="ck" onclick="calcFn('.')">.</button>
+        <button class="ck eq" onclick="calcFn('=')">=</button>
+      </div>
+    </div>
+
+    <!-- LOAN -->
+    <div class="tool-panel" id="panel-loan">
+      <div class="card">
+        <div class="card-title"><span class="card-title-icon">🏠</span> Loan / Hire Purchase</div>
+        <div class="toggle-row" id="loan-type-toggle">
+          <div class="toggle-opt active" onclick="setLoanType('reducing',this)">Reducing Balance</div>
+          <div class="toggle-opt" onclick="setLoanType('flat',this)">Flat Rate</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Loan Type</div>
+          <select id="loan-preset" onchange="applyLoanPreset()">
+            <option value="custom">Custom / Enter manually</option>
+            <option value="home">Home Loan (BNM avg ~4.2%)</option>
+            <option value="car">Car / Hire Purchase (~3.5%)</option>
+            <option value="personal">Personal Loan (~6–8%)</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-label">Principal Amount (RM)</div>
+          <div class="input-wrap"><span class="prefix">RM</span><input type="number" id="loan-principal" class="has-prefix" placeholder="300,000"/></div>
+        </div>
+        <div class="field">
+          <div class="field-label">Annual Interest Rate (%)</div>
+          <input type="number" id="loan-rate" placeholder="4.2" step="0.1"/>
+        </div>
+        <div class="field">
+          <div class="field-label">Loan Tenure</div>
+          <select id="loan-tenure">
+            <option value="custom">Custom (enter below)</option>
+            <option value="5">5 years</option>
+            <option value="10">10 years</option>
+            <option value="15">15 years</option>
+            <option value="20">20 years</option>
+            <option value="25">25 years</option>
+            <option value="30">30 years</option>
+            <option value="35">35 years</option>
+          </select>
+        </div>
+        <div class="field" id="loan-tenure-custom-wrap">
+          <div class="field-label">Custom Tenure (years)</div>
+          <input type="number" id="loan-tenure-custom" placeholder="25"/>
+        </div>
+        <button class="calc-btn" onclick="calcLoan()">Calculate Loan</button>
+      </div>
+      <div id="loan-result" style="display:none">
+        <div class="result-box">
+          <div class="result-main-label">Monthly Payment</div>
+          <div class="result-main-value" id="loan-monthly"></div>
+        </div>
+        <div class="result-grid">
+          <div class="result-item"><div class="result-item-label">Total Payment</div><div class="result-item-value" id="loan-total"></div></div>
+          <div class="result-item"><div class="result-item-label">Total Interest</div><div class="result-item-value red" id="loan-interest"></div></div>
+          <div class="result-item"><div class="result-item-label">Principal</div><div class="result-item-value" id="loan-principal-show"></div></div>
+          <div class="result-item"><div class="result-item-label">Interest Rate</div><div class="result-item-value" id="loan-rate-show"></div></div>
+        </div>
+        <div class="section-label">Amortisation Table</div>
+        <div class="amort-wrap"><table class="amort-table" id="amort-table"></table></div>
+      </div>
+    </div>
+
+    <!-- SALARY -->
+    <div class="tool-panel" id="panel-salary">
+      <div class="card">
+        <div class="card-title"><span class="card-title-icon">💼</span> Salary Breakdown MY</div>
+        <div class="field">
+          <div class="field-label">Job Category</div>
+          <select id="salary-preset" onchange="applySalaryPreset()">
+            <option value="custom">Custom / Enter manually</option>
+            <option value="fresh">Fresh Graduate (~RM 2,500)</option>
+            <option value="exec">Executive (~RM 4,000)</option>
+            <option value="senior">Senior Executive (~RM 7,000)</option>
+            <option value="manager">Manager (~RM 10,000)</option>
+            <option value="director">Director (~RM 18,000)</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-label">Gross Monthly Salary (RM)</div>
+          <div class="input-wrap"><span class="prefix">RM</span><input type="number" id="salary-gross" class="has-prefix" placeholder="5,000"/></div>
+        </div>
+        <div class="field">
+          <div class="field-label">EPF Employee Rate</div>
+          <select id="salary-epf-rate">
+            <option value="11">11% (standard)</option>
+            <option value="9">9% (optional lower)</option>
+          </select>
+        </div>
+        <button class="calc-btn" onclick="calcSalary()">Calculate Net Salary</button>
+      </div>
+      <div id="salary-result" style="display:none">
+        <div class="result-box">
+          <div class="result-main-label">Take-Home Pay</div>
+          <div class="result-main-value" id="salary-net"></div>
+        </div>
+        <div class="result-grid">
+          <div class="result-item"><div class="result-item-label">EPF (Employee)</div><div class="result-item-value red" id="salary-epf-ee"></div></div>
+          <div class="result-item"><div class="result-item-label">SOCSO</div><div class="result-item-value red" id="salary-socso"></div></div>
+          <div class="result-item"><div class="result-item-label">EIS</div><div class="result-item-value red" id="salary-eis"></div></div>
+          <div class="result-item"><div class="result-item-label">PCB Tax</div><div class="result-item-value red" id="salary-pcb"></div></div>
+          <div class="result-item"><div class="result-item-label">EPF (Employer)</div><div class="result-item-value green" id="salary-epf-er"></div></div>
+          <div class="result-item"><div class="result-item-label">Total Employer Cost</div><div class="result-item-value blue" id="salary-total-cost"></div></div>
+        </div>
+        <div class="section-label">Breakdown</div>
+        <div class="breakdown-bar" id="salary-bar"></div>
+        <div class="bb-legend" id="salary-legend"></div>
+      </div>
+    </div>
+
+    <!-- EPF -->
+    <div class="tool-panel" id="panel-epf">
+      <div class="card">
+        <div class="card-title"><span class="card-title-icon">💰</span> EPF Retirement Planner</div>
+        <div class="field">
+          <div class="field-label">Age Group</div>
+          <select id="epf-age-preset" onchange="applyEpfPreset()">
+            <option value="custom">Custom / Enter manually</option>
+            <option value="25">Age 25 — 35 years to retire</option>
+            <option value="30">Age 30 — 30 years to retire</option>
+            <option value="35">Age 35 — 25 years to retire</option>
+            <option value="40">Age 40 — 20 years to retire</option>
+            <option value="45">Age 45 — 15 years to retire</option>
+            <option value="50">Age 50 — 10 years to retire</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-label">Current Age</div>
+          <input type="number" id="epf-age" placeholder="30"/>
+        </div>
+        <div class="field">
+          <div class="field-label">Monthly Salary (RM)</div>
+          <div class="input-wrap"><span class="prefix">RM</span><input type="number" id="epf-salary" class="has-prefix" placeholder="5,000"/></div>
+        </div>
+        <div class="field">
+          <div class="field-label">Current EPF Balance (RM)</div>
+          <div class="input-wrap"><span class="prefix">RM</span><input type="number" id="epf-balance" class="has-prefix" placeholder="20,000"/></div>
+        </div>
+        <div class="field">
+          <div class="field-label">Annual Dividend Rate (%)</div>
+          <select id="epf-dividend">
+            <option value="5.5">5.50% (2023 actual)</option>
+            <option value="5.35">5.35% (2022 actual)</option>
+            <option value="6.1">6.10% (2021 actual)</option>
+            <option value="custom">Custom rate</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-label">Annual Salary Increment (%)</div>
+          <input type="number" id="epf-increment" placeholder="3" value="3"/>
+        </div>
+        <button class="calc-btn" onclick="calcEpf()">Project EPF at 60</button>
+      </div>
+      <div id="epf-result" style="display:none">
+        <div class="result-box">
+          <div class="result-main-label">Projected Balance at Age 60</div>
+          <div class="result-main-value" id="epf-projected"></div>
+        </div>
+        <div class="result-grid">
+          <div class="result-item"><div class="result-item-label">Monthly Contribution</div><div class="result-item-value green" id="epf-monthly-contrib"></div></div>
+          <div class="result-item"><div class="result-item-label">Years to Retire</div><div class="result-item-value" id="epf-years"></div></div>
+          <div class="result-item"><div class="result-item-label">Total Contributed</div><div class="result-item-value" id="epf-total-contrib"></div></div>
+          <div class="result-item"><div class="result-item-label">Dividend Growth</div><div class="result-item-value green" id="epf-dividend-growth"></div></div>
+        </div>
+        <div class="tip-box">
+          <div class="tip-label">💡 EPF Tip</div>
+          <div class="tip-text" id="epf-tip"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PTPTN -->
+    <div class="tool-panel" id="panel-ptptn">
+      <div class="card">
+        <div class="card-title"><span class="card-title-icon">🎓</span> PTPTN Loan Planner</div>
+        <div class="field">
+          <div class="field-label">Loan Type</div>
+          <select id="ptptn-preset" onchange="applyPtptnPreset()">
+            <option value="custom">Custom / Enter manually</option>
+            <option value="diploma">Diploma (~RM 20,000)</option>
+            <option value="degree">Bachelor Degree (~RM 40,000)</option>
+            <option value="master">Master's (~RM 30,000)</option>
+            <option value="private">Private Uni (up to RM 100,000)</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-label">Outstanding Balance (RM)</div>
+          <div class="input-wrap"><span class="prefix">RM</span><input type="number" id="ptptn-balance" class="has-prefix" placeholder="40,000"/></div>
+        </div>
+        <div class="field">
+          <div class="field-label">Annual Interest Rate (%)</div>
+          <input type="number" id="ptptn-rate" placeholder="1" value="1" step="0.1"/>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">Standard PTPTN: 1% p.a. (subsidised)</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Monthly Payment (RM)</div>
+          <div class="input-wrap"><span class="prefix">RM</span><input type="number" id="ptptn-payment" class="has-prefix" placeholder="250"/></div>
+        </div>
+        <div class="field">
+          <div class="field-label">Extra Monthly Payment (RM)</div>
+          <div class="input-wrap"><span class="prefix">RM</span><input type="number" id="ptptn-extra" class="has-prefix" placeholder="0"/></div>
+        </div>
+        <button class="calc-btn" onclick="calcPtptn()">Calculate Payoff Plan</button>
+      </div>
+      <div id="ptptn-result" style="display:none">
+        <div class="result-box">
+          <div class="result-main-label">Payoff in</div>
+          <div class="result-main-value" id="ptptn-months"></div>
+        </div>
+        <div class="result-grid">
+          <div class="result-item"><div class="result-item-label">Total Paid</div><div class="result-item-value" id="ptptn-total"></div></div>
+          <div class="result-item"><div class="result-item-label">Total Interest</div><div class="result-item-value red" id="ptptn-interest"></div></div>
+          <div class="result-item"><div class="result-item-label">Payoff Date</div><div class="result-item-value blue" id="ptptn-date"></div></div>
+          <div class="result-item"><div class="result-item-label">Interest Saved</div><div class="result-item-value green" id="ptptn-saved"></div></div>
+        </div>
+        <div class="tip-box" id="ptptn-tip-box">
+          <div class="tip-label">💡 Savings from extra payment</div>
+          <div class="tip-text" id="ptptn-tip"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PCB TAX -->
+    <div class="tool-panel" id="panel-tax">
+      <div class="card">
+        <div class="card-title"><span class="card-title-icon">📊</span> PCB Income Tax (YA 2024)</div>
+        <div class="field">
+          <div class="field-label">Employment Category</div>
+          <select id="tax-preset" onchange="applyTaxPreset()">
+            <option value="custom">Custom / Enter manually</option>
+            <option value="single-2500">Single, RM 2,500/mo</option>
+            <option value="single-5000">Single, RM 5,000/mo</option>
+            <option value="single-10000">Single, RM 10,000/mo</option>
+            <option value="married-5000">Married (spouse not working), RM 5,000/mo</option>
+            <option value="married-8000">Married (spouse not working), RM 8,000/mo</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-label">Annual Gross Income (RM)</div>
+          <div class="input-wrap"><span class="prefix">RM</span><input type="number" id="tax-income" class="has-prefix" placeholder="60,000"/></div>
+        </div>
+        <div class="field">
+          <div class="field-label">Marital Status</div>
+          <select id="tax-status">
+            <option value="single">Single</option>
+            <option value="married-nw">Married (spouse not working)</option>
+            <option value="married-w">Married (spouse working)</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-label">Annual EPF Contribution (RM)</div>
+          <div class="input-wrap"><span class="prefix">RM</span><input type="number" id="tax-epf" class="has-prefix" placeholder="6,600"/></div>
+        </div>
+        <div class="field">
+          <div class="field-label">Number of Children</div>
+          <select id="tax-children">
+            <option value="0">No children</option>
+            <option value="1">1 child (RM 2,000)</option>
+            <option value="2">2 children (RM 4,000)</option>
+            <option value="3">3 children (RM 6,000)</option>
+            <option value="4">4+ children</option>
+          </select>
+        </div>
+        <button class="calc-btn" onclick="calcTax()">Calculate PCB Tax</button>
+      </div>
+      <div id="tax-result" style="display:none">
+        <div class="result-box">
+          <div class="result-main-label">Annual Tax Payable</div>
+          <div class="result-main-value" id="tax-annual"></div>
+          <div style="font-size:13px;color:var(--muted);margin-top:4px">Monthly PCB: <span style="color:var(--accent);font-family:var(--mono)" id="tax-monthly"></span></div>
+        </div>
+        <div class="result-grid">
+          <div class="result-item"><div class="result-item-label">Chargeable Income</div><div class="result-item-value" id="tax-chargeable"></div></div>
+          <div class="result-item"><div class="result-item-label">Effective Rate</div><div class="result-item-value" id="tax-eff-rate"></div></div>
+          <div class="result-item"><div class="result-item-label">Total Reliefs</div><div class="result-item-value green" id="tax-reliefs"></div></div>
+          <div class="result-item"><div class="result-item-label">Tax Bracket</div><div class="result-item-value blue" id="tax-bracket"></div></div>
+        </div>
+        <div class="section-label">Tax Band Breakdown</div>
+        <div id="tax-bands"></div>
+      </div>
+    </div>
+
+    <!-- SST -->
+    <div class="tool-panel" id="panel-sst">
+      <div class="card">
+        <div class="card-title"><span class="card-title-icon">🛒</span> SST / Tax Calculator</div>
+        <div class="toggle-row">
+          <div class="toggle-opt active" onclick="setSSTMode('add',this)" id="sst-add">Add Tax</div>
+          <div class="toggle-opt" onclick="setSSTMode('remove',this)" id="sst-remove">Remove Tax</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Tax Rate</div>
+          <select id="sst-rate">
+            <option value="6">6% (SST Services)</option>
+            <option value="10">10% (SST Goods)</option>
+            <option value="5">5% (reduced)</option>
+            <option value="custom">Custom rate</option>
+          </select>
+        </div>
+        <div class="field" id="sst-custom-wrap" style="display:none">
+          <div class="field-label">Custom Rate (%)</div>
+          <input type="number" id="sst-custom-rate" placeholder="8"/>
+        </div>
+        <div class="field">
+          <div class="field-label">Amount (RM)</div>
+          <div class="input-wrap"><span class="prefix">RM</span><input type="number" id="sst-amount" class="has-prefix" placeholder="100.00"/></div>
+        </div>
+        <button class="calc-btn" onclick="calcSST()">Calculate</button>
+      </div>
+      <div id="sst-result" style="display:none">
+        <div class="result-box">
+          <div class="result-main-label" id="sst-result-label">Total with SST</div>
+          <div class="result-main-value" id="sst-total"></div>
+        </div>
+        <div class="result-grid">
+          <div class="result-item"><div class="result-item-label">Original Amount</div><div class="result-item-value" id="sst-original"></div></div>
+          <div class="result-item"><div class="result-item-label">Tax Amount</div><div class="result-item-value red" id="sst-tax-amount"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FUEL -->
+    <div class="tool-panel" id="panel-fuel">
+      <div class="card">
+        <div class="card-title"><span class="card-title-icon">⛽</span> Fuel & Travel Cost</div>
+        <div class="field">
+          <div class="field-label">Fuel Type</div>
+          <select id="fuel-type" onchange="updateFuelPrice()">
+            <option value="ron95">RON 95</option>
+            <option value="ron97">RON 97</option>
+            <option value="diesel">Diesel</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-label">Fuel Price (RM/litre) <span id="fuel-price-badge" style="font-size:10px;color:var(--muted)">auto-filled</span></div>
+          <div class="input-wrap"><span class="prefix">RM</span><input type="number" id="fuel-price" class="has-prefix" step="0.01"/></div>
+        </div>
+        <div class="field">
+          <div class="field-label">Distance (km)</div>
+          <input type="number" id="fuel-distance" placeholder="50"/>
+        </div>
+        <div class="field">
+          <div class="field-label">Fuel Consumption</div>
+          <select id="fuel-consumption-preset" onchange="applyFuelConsumptionPreset()">
+            <option value="custom">Custom (enter below)</option>
+            <option value="8">City car — 8L/100km</option>
+            <option value="10">Sedan — 10L/100km</option>
+            <option value="12">SUV — 12L/100km</option>
+            <option value="14">MPV/4WD — 14L/100km</option>
+            <option value="6">Hybrid — 6L/100km</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-label">L/100km</div>
+          <input type="number" id="fuel-consumption" placeholder="10" step="0.1"/>
+        </div>
+        <div class="field">
+          <div class="field-label">Trips per Month</div>
+          <input type="number" id="fuel-trips" placeholder="20"/>
+        </div>
+        <button class="calc-btn" onclick="calcFuel()">Calculate Fuel Cost</button>
+      </div>
+      <div id="fuel-result" style="display:none">
+        <div class="result-box">
+          <div class="result-main-label">Cost per Trip</div>
+          <div class="result-main-value" id="fuel-per-trip"></div>
+        </div>
+        <div class="result-grid">
+          <div class="result-item"><div class="result-item-label">Litres Used</div><div class="result-item-value" id="fuel-litres"></div></div>
+          <div class="result-item"><div class="result-item-label">Monthly Cost</div><div class="result-item-value red" id="fuel-monthly"></div></div>
+          <div class="result-item"><div class="result-item-label">Annual Cost</div><div class="result-item-value red" id="fuel-annual"></div></div>
+          <div class="result-item"><div class="result-item-label">Cost/km</div><div class="result-item-value" id="fuel-per-km"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BMI -->
+    <div class="tool-panel" id="panel-bmi">
+      <div class="card">
+        <div class="card-title"><span class="card-title-icon">⚖️</span> BMI & Health</div>
+        <div class="toggle-row">
+          <div class="toggle-opt active" onclick="setBMIUnit('metric',this)">Metric (kg/cm)</div>
+          <div class="toggle-opt" onclick="setBMIUnit('imperial',this)">Imperial (lb/in)</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Weight (kg)</div>
+          <input type="number" id="bmi-weight" placeholder="70" step="0.1"/>
+        </div>
+        <div class="field">
+          <div class="field-label">Height (cm)</div>
+          <input type="number" id="bmi-height" placeholder="170"/>
+        </div>
+        <div class="field">
+          <div class="field-label">Age</div>
+          <input type="number" id="bmi-age" placeholder="30"/>
+        </div>
+        <div class="field">
+          <div class="field-label">Activity Level</div>
+          <select id="bmi-activity">
+            <option value="1.2">Sedentary (desk job)</option>
+            <option value="1.375">Light (1-3x/week exercise)</option>
+            <option value="1.55" selected>Moderate (3-5x/week)</option>
+            <option value="1.725">Active (6-7x/week)</option>
+            <option value="1.9">Very active (athlete)</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-label">Gender</div>
+          <div class="toggle-row">
+            <div class="toggle-opt active" onclick="setBMIGender('male',this)">Male</div>
+            <div class="toggle-opt" onclick="setBMIGender('female',this)">Female</div>
+          </div>
+        </div>
+        <button class="calc-btn" onclick="calcBMI()">Calculate BMI</button>
+      </div>
+      <div id="bmi-result" style="display:none">
+        <div class="result-box">
+          <div class="result-main-label">BMI</div>
+          <div class="result-main-value" id="bmi-value"></div>
+          <div style="font-size:14px;margin-top:4px" id="bmi-cat"></div>
+        </div>
+        <div class="result-grid">
+          <div class="result-item"><div class="result-item-label">Ideal Weight Range</div><div class="result-item-value green" id="bmi-ideal"></div></div>
+          <div class="result-item"><div class="result-item-label">BMR</div><div class="result-item-value" id="bmi-bmr"></div></div>
+          <div class="result-item"><div class="result-item-label">Daily Calories</div><div class="result-item-value blue" id="bmi-calories"></div></div>
+          <div class="result-item"><div class="result-item-label">Lose Weight</div><div class="result-item-value" id="bmi-lose"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BILL SPLITTER -->
+    <div class="tool-panel" id="panel-bill">
+      <div class="card">
+        <div class="card-title"><span class="card-title-icon">🍽️</span> Bill Splitter</div>
+        <div class="field">
+          <div class="field-label">Venue Type</div>
+          <select id="bill-preset" onchange="applyBillPreset()">
+            <option value="custom">Custom / Enter manually</option>
+            <option value="mamak">Mamak (no service charge)</option>
+            <option value="casual">Casual restaurant (10% service)</option>
+            <option value="fine">Fine dining (10% svc + 6% SST)</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-label">Bill Amount (RM)</div>
+          <div class="input-wrap"><span class="prefix">RM</span><input type="number" id="bill-amount" class="has-prefix" placeholder="150.00"/></div>
+        </div>
+        <div class="field">
+          <div class="field-label">Service Charge (%)</div>
+          <input type="number" id="bill-service" placeholder="10" value="10"/>
+        </div>
+        <div class="field">
+          <div class="field-label">SST (%)</div>
+          <input type="number" id="bill-sst" placeholder="6" value="6"/>
+        </div>
+        <div class="field">
+          <div class="field-label">Tip (%)</div>
+          <input type="number" id="bill-tip" placeholder="0" value="0"/>
+        </div>
+        <div class="field">
+          <div class="field-label">Number of People</div>
+          <select id="bill-people">
+            <option value="2">2 people</option>
+            <option value="3">3 people</option>
+            <option value="4" selected>4 people</option>
+            <option value="5">5 people</option>
+            <option value="6">6 people</option>
+            <option value="8">8 people</option>
+            <option value="10">10 people</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+        <button class="calc-btn" onclick="calcBill()">Split Bill</button>
+      </div>
+      <div id="bill-result" style="display:none">
+        <div class="result-box">
+          <div class="result-main-label">Each Person Pays</div>
+          <div class="result-main-value" id="bill-per-person"></div>
+        </div>
+        <div class="result-grid">
+          <div class="result-item"><div class="result-item-label">Subtotal</div><div class="result-item-value" id="bill-sub"></div></div>
+          <div class="result-item"><div class="result-item-label">Service Charge</div><div class="result-item-value" id="bill-svc"></div></div>
+          <div class="result-item"><div class="result-item-label">SST</div><div class="result-item-value" id="bill-sst-amt"></div></div>
+          <div class="result-item"><div class="result-item-label">Total Bill</div><div class="result-item-value blue" id="bill-total"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DISCOUNT -->
+    <div class="tool-panel" id="panel-discount">
+      <div class="card">
+        <div class="card-title"><span class="card-title-icon">🏷️</span> Discount & Markup</div>
+        <div class="toggle-row">
+          <div class="toggle-opt active" onclick="setDiscMode('discount',this)">Discount</div>
+          <div class="toggle-opt" onclick="setDiscMode('markup',this)">Markup</div>
+          <div class="toggle-opt" onclick="setDiscMode('compare',this)">Compare</div>
+        </div>
+        <div id="disc-fields">
+          <div class="field">
+            <div class="field-label">Original Price (RM)</div>
+            <div class="input-wrap"><span class="prefix">RM</span><input type="number" id="disc-price" class="has-prefix" placeholder="299.00"/></div>
+          </div>
+          <div class="field">
+            <div class="field-label">Discount (%)</div>
+            <input type="number" id="disc-pct" placeholder="20"/>
+          </div>
+        </div>
+        <button class="calc-btn" onclick="calcDiscount()">Calculate</button>
+      </div>
+      <div id="discount-result" style="display:none">
+        <div class="result-box">
+          <div class="result-main-label" id="disc-result-label">Final Price</div>
+          <div class="result-main-value" id="disc-final"></div>
+        </div>
+        <div class="result-grid">
+          <div class="result-item"><div class="result-item-label">Original</div><div class="result-item-value" id="disc-orig-show"></div></div>
+          <div class="result-item"><div class="result-item-label">You Save</div><div class="result-item-value green" id="disc-save"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DATE -->
+    <div class="tool-panel" id="panel-date">
+      <div class="card">
+        <div class="card-title"><span class="card-title-icon">📅</span> Date Calculator</div>
+        <div class="toggle-row">
+          <div class="toggle-opt active" onclick="setDateMode('diff',this)">Date Difference</div>
+          <div class="toggle-opt" onclick="setDateMode('add',this)">Add/Subtract</div>
+          <div class="toggle-opt" onclick="setDateMode('age',this)">Age</div>
+        </div>
+        <div id="date-diff-fields">
+          <div class="field"><div class="field-label">Start Date</div><input type="date" id="date-start" style="color:var(--text);"/></div>
+          <div class="field"><div class="field-label">End Date</div><input type="date" id="date-end" style="color:var(--text);"/></div>
+        </div>
+        <button class="calc-btn" onclick="calcDate()">Calculate</button>
+      </div>
+      <div id="date-result" style="display:none">
+        <div class="result-box">
+          <div class="result-main-label" id="date-result-label">Days Between</div>
+          <div class="result-main-value" id="date-result-val"></div>
+        </div>
+        <div class="result-grid" id="date-result-grid"></div>
+      </div>
+    </div>
+
+    <!-- UNIT CONVERTER -->
+    <div class="tool-panel" id="panel-unit">
+      <div class="card">
+        <div class="card-title"><span class="card-title-icon">📏</span> Unit Converter</div>
+        <div class="field">
+          <div class="field-label">Category</div>
+          <select id="unit-cat" onchange="updateUnitOptions()">
+            <option value="length">Length</option>
+            <option value="weight">Weight</option>
+            <option value="temp">Temperature</option>
+            <option value="volume">Volume</option>
+            <option value="area">Area</option>
+            <option value="speed">Speed</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-label">From</div>
+          <select id="unit-from"></select>
+        </div>
+        <div class="field">
+          <div class="field-label">Amount</div>
+          <input type="number" id="unit-value" placeholder="1" oninput="calcUnit()"/>
+        </div>
+        <div class="field">
+          <div class="field-label">To</div>
+          <select id="unit-to" onchange="calcUnit()"></select>
+        </div>
+        <div id="unit-result" style="display:none">
+          <div class="result-box" style="margin-top:4px">
+            <div class="result-main-label">Result</div>
+            <div class="result-main-value" id="unit-result-val"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end content -->
+</div><!-- end app -->
+
+<!-- FUEL MODAL -->
+<div class="modal-overlay" id="fuel-modal" onclick="closeFuelModal(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⛽ Update Fuel Prices</div>
+    <div class="modal-sub">Updated every Thursday by the government. Enter current prices:</div>
+    <div class="fuel-row">
+      <div><div class="fuel-label">RON 95</div></div>
+      <span class="fuel-badge fb-ron95">Subsidised</span>
+      <div class="fuel-input-wrap"><span class="fuel-rm">RM</span><input class="fuel-inp" type="number" id="modal-ron95" step="0.01" placeholder="2.05"/></div>
+    </div>
+    <div class="fuel-row">
+      <div><div class="fuel-label">RON 97</div></div>
+      <span class="fuel-badge fb-ron97">Market</span>
+      <div class="fuel-input-wrap"><span class="fuel-rm">RM</span><input class="fuel-inp" type="number" id="modal-ron97" step="0.01" placeholder="3.25"/></div>
+    </div>
+    <div class="fuel-row">
+      <div><div class="fuel-label">Diesel</div></div>
+      <span class="fuel-badge fb-diesel">Subsidised</span>
+      <div class="fuel-input-wrap"><span class="fuel-rm">RM</span><input class="fuel-inp" type="number" id="modal-diesel" step="0.01" placeholder="2.15"/></div>
+    </div>
+    <button class="calc-btn" onclick="saveFuelPrices()" style="margin-top:16px">Save Prices</button>
+    <div class="fuel-updated" id="fuel-updated-label">Last updated: never</div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ STATE ============
+let fuelPrices = JSON.parse(localStorage.getItem('calcmy_fuel') || '{"ron95":2.05,"ron97":3.25,"diesel":2.15,"updated":""}');
+let loanType = 'reducing';
+let sstMode = 'add';
+let discMode = 'discount';
+let dateMode = 'diff';
+let bmiUnit = 'metric';
+let bmiGender = 'male';
+let vaultPin = localStorage.getItem('calcmy_pin') || '';
+let vaultInput = '';
+let vaultMedia = JSON.parse(localStorage.getItem('calcmy_vault_media') || '[]');
+
+// ============ VAULT ============
+function vaultKey(k) {
+  if (k === 'skip') { dismissVault(); return; }
+  if (k === 'del') { vaultInput = vaultInput.slice(0,-1); updateDots(); return; }
+  if (vaultInput.length >= 4) return;
+  vaultInput += k;
+  updateDots();
+  if (vaultInput.length === 4) {
+    setTimeout(() => checkVault(), 200);
+  }
+}
+function updateDots() {
+  for(let i=0;i<4;i++) {
+    const d = document.getElementById('vd'+i);
+    d.classList.toggle('filled', i < vaultInput.length);
+  }
+}
+function checkVault() {
+  if (!vaultPin) {
+    // First time — set pin
+    vaultPin = vaultInput;
+    localStorage.setItem('calcmy_pin', vaultPin);
+    dismissVault();
+    showToast('PIN set! Enter this PIN anytime to open vault');
+  } else if (vaultInput === vaultPin) {
+    // Open vault
+    openMediaVault();
+    vaultInput = '';
+    updateDots();
+  } else {
+    // Wrong pin — dismiss to app
+    document.getElementById('vault-dots').classList.add('vault-wrong');
+    setTimeout(() => { document.getElementById('vault-dots').classList.remove('vault-wrong'); vaultInput=''; updateDots(); dismissVault(); }, 600);
+  }
+}
+function dismissVault() {
+  document.getElementById('vault-screen').classList.add('hidden');
+  vaultInput = '';
+  updateDots();
+}
+function openMediaVault() {
+  dismissVault();
+  document.getElementById('media-vault').classList.add('show');
+  renderVaultGrid();
+}
+function closeMediaVault() {
+  document.getElementById('media-vault').classList.remove('show');
+}
+function renderVaultGrid() {
+  const grid = document.getElementById('mv-grid');
+  const empty = document.getElementById('mv-empty');
+  const addBtn = document.getElementById('mv-add-btn');
+  if (vaultMedia.length === 0) {
+    grid.style.display = 'none'; addBtn.style.display = 'none';
+    empty.style.display = 'block';
+  } else {
+    empty.style.display = 'none';
+    grid.style.display = 'grid'; addBtn.style.display = 'block';
+    grid.innerHTML = '';
+    vaultMedia.forEach((item, i) => {
+      const div = document.createElement('div');
+      div.className = 'mv-item';
+      if (item.type === 'video') {
+        div.innerHTML = `<video src="${item.data}" playsinline></video>`;
+      } else {
+        div.innerHTML = `<img src="${item.data}" loading="lazy"/>`;
+      }
+      const del = document.createElement('button');
+      del.className = 'mv-item-del'; del.textContent = '×';
+      del.onclick = (e) => { e.stopPropagation(); vaultMedia.splice(i,1); localStorage.setItem('calcmy_vault_media', JSON.stringify(vaultMedia)); renderVaultGrid(); };
+      div.appendChild(del);
+      grid.appendChild(div);
+    });
+  }
+}
+function addToVault(input) {
+  const files = Array.from(input.files);
+  let loaded = 0;
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      vaultMedia.push({ type: file.type.startsWith('video') ? 'video' : 'image', data: e.target.result });
+      loaded++;
+      if (loaded === files.length) {
+        try { localStorage.setItem('calcmy_vault_media', JSON.stringify(vaultMedia)); }
+        catch(e) { showToast('Storage full — try smaller files'); }
+        renderVaultGrid();
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+}
+
+// Show vault screen on load
+window.addEventListener('load', () => {
+  // auto-dismiss after 8s if user doesn't interact
+  setTimeout(() => { if (!document.getElementById('vault-screen').classList.contains('hidden')) dismissVault(); }, 8000);
+  loadFuelUI();
+  updateUnitOptions();
+  // Set today's date for date calc
+  const today = new Date().toISOString().split('T')[0];
+  const ds = document.getElementById('date-start'); if(ds) ds.value = today;
+  const de = document.getElementById('date-end'); if(de) de.value = today;
+});
+
+// ============ NAV ============
+function showTool(id, btn) {
+  document.querySelectorAll('.tool-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+// ============ FUEL MODAL ============
+function openFuelModal() { document.getElementById('fuel-modal').classList.add('open'); loadFuelModal(); }
+function closeFuelModal(e) { if(e.target===document.getElementById('fuel-modal')) document.getElementById('fuel-modal').classList.remove('open'); }
+function loadFuelModal() {
+  document.getElementById('modal-ron95').value = fuelPrices.ron95;
+  document.getElementById('modal-ron97').value = fuelPrices.ron97;
+  document.getElementById('modal-diesel').value = fuelPrices.diesel;
+  document.getElementById('fuel-updated-label').textContent = fuelPrices.updated ? 'Last updated: '+fuelPrices.updated : 'Last updated: never';
+}
+function saveFuelPrices() {
+  fuelPrices.ron95 = parseFloat(document.getElementById('modal-ron95').value)||2.05;
+  fuelPrices.ron97 = parseFloat(document.getElementById('modal-ron97').value)||3.25;
+  fuelPrices.diesel = parseFloat(document.getElementById('modal-diesel').value)||2.15;
+  fuelPrices.updated = new Date().toLocaleDateString('en-MY');
+  localStorage.setItem('calcmy_fuel', JSON.stringify(fuelPrices));
+  loadFuelUI();
+  document.getElementById('fuel-modal').classList.remove('open');
+  showToast('Fuel prices updated ✓');
+}
+function loadFuelUI() {
+  document.getElementById('header-ron95').textContent = 'RM '+fuelPrices.ron95.toFixed(2);
+  updateFuelPrice();
+}
+function updateFuelPrice() {
+  const type = document.getElementById('fuel-type')?.value;
+  const prices = {ron95: fuelPrices.ron95, ron97: fuelPrices.ron97, diesel: fuelPrices.diesel};
+  const inp = document.getElementById('fuel-price');
+  if (inp && type) inp.value = prices[type];
+}
+
+// ============ CALCULATOR ============
+let calcExpr = '', calcVal = '0', calcNewNum = true, calcHasResult = false;
+function calcFn(k) {
+  const display = document.getElementById('calc-val');
+  const expr = document.getElementById('calc-expr');
+  if (k === 'C') { calcExpr=''; calcVal='0'; calcNewNum=true; calcHasResult=false; }
+  else if (k === '+/-') { calcVal = calcVal.startsWith('-') ? calcVal.slice(1) : '-'+calcVal; }
+  else if (k === '%') { calcVal = String(parseFloat(calcVal)/100); }
+  else if (['÷','×','-','+'].includes(k)) {
+    if (!calcNewNum) { try { calcVal = String(eval(calcExpr.replace(/÷/g,'/').replace(/×/g,'*')+calcVal)); } catch(e){} }
+    calcExpr = calcVal + ' ' + k + ' '; calcNewNum = true; calcHasResult = false;
+  }
+  else if (k === '=') {
+    try {
+      const full = calcExpr + calcVal;
+      const res = eval(full.replace(/÷/g,'/').replace(/×/g,'*'));
+      expr.textContent = full + ' =';
+      calcVal = String(parseFloat(res.toFixed(10)));
+      calcExpr = ''; calcNewNum = true; calcHasResult = true;
+    } catch(e) { calcVal = 'Error'; }
+  }
+  else if (k === '.') {
+    if (calcNewNum) { calcVal = '0.'; calcNewNum = false; }
+    else if (!calcVal.includes('.')) calcVal += '.';
+  }
+  else {
+    if (calcNewNum || calcHasResult) { calcVal = k; calcNewNum = false; calcHasResult = false; }
+    else { if (calcVal === '0') calcVal = k; else calcVal += k; }
+  }
+  display.textContent = parseFloat(calcVal).toLocaleString('en-MY', {maximumFractionDigits:10}) || calcVal;
+  if (!calcHasResult && !['÷','×','-','+'].includes(k)) expr.textContent = calcExpr;
+}
+
+// ============ HELPERS ============
+const fmt = v => 'RM ' + parseFloat(v).toLocaleString('en-MY', {minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtNum = v => parseFloat(v).toLocaleString('en-MY', {minimumFractionDigits:0,maximumFractionDigits:2});
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove('show'), 3000);
+}
+
+// ============ LOAN ============
+function setLoanType(type, el) { loanType=type; document.querySelectorAll('#loan-type-toggle .toggle-opt').forEach(e=>e.classList.remove('active')); el.classList.add('active'); }
+function applyLoanPreset() {
+  const p = document.getElementById('loan-preset').value;
+  const presets = {home:{rate:4.2,tenure:30}, car:{rate:3.5,tenure:7}, personal:{rate:7,tenure:5}};
+  if (presets[p]) { document.getElementById('loan-rate').value=presets[p].rate; document.getElementById('loan-tenure').value=presets[p].tenure; }
+}
+function calcLoan() {
+  const P = parseFloat(document.getElementById('loan-principal').value)||0;
+  const r = parseFloat(document.getElementById('loan-rate').value)||0;
+  let years = document.getElementById('loan-tenure').value;
+  if (years === 'custom') years = parseFloat(document.getElementById('loan-tenure-custom').value)||0;
+  else years = parseFloat(years);
+  if (!P||!r||!years) { showToast('Please fill all fields'); return; }
+  const n = years*12;
+  let monthly, totalInterest;
+  if (loanType === 'flat') {
+    const interest = P * (r/100) * years;
+    monthly = (P + interest) / n;
+    totalInterest = interest;
+  } else {
+    const mr = r/100/12;
+    monthly = P * mr * Math.pow(1+mr,n) / (Math.pow(1+mr,n)-1);
+    totalInterest = monthly*n - P;
+  }
+  const total = monthly*n;
+  document.getElementById('loan-monthly').textContent = fmt(monthly);
+  document.getElementById('loan-total').textContent = fmt(total);
+  document.getElementById('loan-interest').textContent = fmt(totalInterest);
+  document.getElementById('loan-principal-show').textContent = fmt(P);
+  document.getElementById('loan-rate-show').textContent = r+'% p.a.';
+  // Amort table (yearly)
+  let balance = P, tableHTML = '<tr><th>Year</th><th>Principal</th><th>Interest</th><th>Balance</th></tr>';
+  for (let y=1; y<=Math.min(years,35); y++) {
+    let yPrin=0, yInt=0;
+    for (let m=0; m<12; m++) {
+      const mr = r/100/12;
+      const intPay = balance*mr;
+      const prinPay = monthly - intPay;
+      yInt += intPay; yPrin += prinPay;
+      balance = Math.max(0, balance - prinPay);
+    }
+    tableHTML += `<tr><td>${y}</td><td class="green">RM ${fmtNum(yPrin)}</td><td class="red">RM ${fmtNum(yInt)}</td><td>RM ${fmtNum(balance)}</td></tr>`;
+  }
+  document.getElementById('amort-table').innerHTML = tableHTML;
+  document.getElementById('loan-result').style.display='block';
+}
+document.getElementById('loan-tenure').addEventListener('change', function(){
+  document.getElementById('loan-tenure-custom-wrap').style.display = this.value==='custom'?'block':'none';
+});
+
+// ============ SALARY ============
+function applySalaryPreset() {
+  const presets = {fresh:2500,exec:4000,senior:7000,manager:10000,director:18000};
+  const v = document.getElementById('salary-preset').value;
+  if (presets[v]) document.getElementById('salary-gross').value = presets[v];
+}
+// SOCSO table
+function getSocso(gross) {
+  const wages = Math.min(gross, 4000);
+  const bands = [[0,30,0.4],[30,50,0.6],[50,70,0.8],[70,100,1],[100,140,1.4],[140,200,2],[200,300,3],[300,400,4],[400,500,5],[500,600,6],[600,700,7],[700,800,8],[800,900,9],[900,1000,10],[1000,1100,11],[1100,1200,12],[1200,1300,13],[1300,1400,14],[1400,1500,15],[1500,1600,16],[1600,1700,17],[1700,1800,18],[1800,1900,19],[1900,2000,20],[2000,2100,21],[2100,2200,22],[2200,2300,23],[2300,2400,24],[2400,2500,25],[2500,2600,26],[2600,2700,27],[2700,2800,28],[2800,2900,29],[2900,3000,30],[3000,3100,31],[3100,3200,32],[3200,3300,33],[3300,3400,34],[3400,3500,35],[3500,3600,36],[3600,3700,37],[3700,3800,38],[3800,3900,39],[3900,4000,40]];
+  for (const [lo,hi,ee] of bands) { if (wages > lo && wages <= hi) return ee/100; }
+  return 0.4;
+}
+function calcSalary() {
+  const gross = parseFloat(document.getElementById('salary-gross').value)||0;
+  if (!gross) { showToast('Enter your salary'); return; }
+  const epfRate = parseFloat(document.getElementById('salary-epf-rate').value)/100;
+  const epfEE = Math.min(gross, 5000) * epfRate; // EPF ceiling was removed but practically capped consideration
+  const epfActual = gross * epfRate;
+  const socso = getSocso(gross);
+  const eis = Math.min(gross, 4000) * 0.002;
+  // Rough PCB estimate
+  const annual = gross * 12;
+  const chargeableEst = Math.max(0, annual - epfActual*12 - socso*12 - eis*12 - 9000 - 4000); // individual + EPF relief
+  const pcb = calcPCBFromChargeable(chargeableEst) / 12;
+  const net = gross - epfActual - socso - eis - pcb;
+  const epfER = gross <= 5000 ? gross * 0.13 : gross * 0.12;
+  const totalCost = gross + epfER + socso*1.75;
+  document.getElementById('salary-net').textContent = fmt(net);
+  document.getElementById('salary-epf-ee').textContent = fmt(epfActual);
+  document.getElementById('salary-socso').textContent = fmt(socso);
+  document.getElementById('salary-eis').textContent = fmt(eis);
+  document.getElementById('salary-pcb').textContent = fmt(pcb);
+  document.getElementById('salary-epf-er').textContent = fmt(epfER);
+  document.getElementById('salary-total-cost').textContent = fmt(totalCost);
+  // Bar
+  const deductions = epfActual + socso + eis + pcb;
+  const segments = [{color:'#00d68f',pct:net/gross*100,label:'Take-home'},{color:'#4d9fff',pct:epfActual/gross*100,label:'EPF'},{color:'#ff6b6b',pct:(socso+eis+pcb)/gross*100,label:'Tax+SOCSO'}];
+  const bar = document.getElementById('salary-bar');
+  const legend = document.getElementById('salary-legend');
+  bar.innerHTML = segments.map(s=>`<div class="bb-seg" style="width:${s.pct}%;background:${s.color}"></div>`).join('');
+  legend.innerHTML = segments.map(s=>`<div class="bb-item"><div class="bb-dot" style="background:${s.color}"></div>${s.label}</div>`).join('');
+  document.getElementById('salary-result').style.display='block';
+}
+
+// ============ PCB/TAX ============
+const TAX_BANDS = [
+  [0,5000,0],
+  [5000,20000,1],
+  [20000,35000,3],
+  [35000,50000,8],
+  [50000,70000,13],
+  [70000,100000,21],
+  [100000,250000,24],
+  [250000,400000,24.5],
+  [400000,600000,25],
+  [600000,1000000,26],
+  [1000000,Infinity,30]
+];
+function calcPCBFromChargeable(income) {
+  let tax = 0;
+  for (const [lo,hi,rate] of TAX_BANDS) {
+    if (income > lo) { tax += Math.min(income-lo, hi-lo) * rate/100; }
+  }
+  return tax;
+}
+function applyTaxPreset() {
+  const presets = {'single-2500':{income:30000,status:'single',epf:3300,children:0},'single-5000':{income:60000,status:'single',epf:6600,children:0},'single-10000':{income:120000,status:'single',epf:13200,children:0},'married-5000':{income:60000,status:'married-nw',epf:6600,children:2},'married-8000':{income:96000,status:'married-nw',epf:10560,children:2}};
+  const v = document.getElementById('tax-preset').value;
+  if (presets[v]) {
+    const p = presets[v];
+    document.getElementById('tax-income').value = p.income;
+    document.getElementById('tax-status').value = p.status;
+    document.getElementById('tax-epf').value = p.epf;
+    document.getElementById('tax-children').value = p.children;
+  }
+}
+function calcTax() {
+  const income = parseFloat(document.getElementById('tax-income').value)||0;
+  const status = document.getElementById('tax-status').value;
+  const epf = Math.min(parseFloat(document.getElementById('tax-epf').value)||0, 4000);
+  const children = parseInt(document.getElementById('tax-children').value)||0;
+  if (!income) { showToast('Enter annual income'); return; }
+  let reliefs = 9000 + epf; // individual + EPF
+  if (status === 'married-nw') reliefs += 4000;
+  if (status === 'married-w') reliefs += 0;
+  reliefs += children * 2000;
+  const chargeable = Math.max(0, income - reliefs);
+  const tax = calcPCBFromChargeable(chargeable);
+  const effRate = income > 0 ? (tax/income*100) : 0;
+  // Find bracket
+  let bracket = '0%';
+  for (const [lo,hi,rate] of TAX_BANDS) { if (chargeable > lo) bracket = rate+'%'; }
+  document.getElementById('tax-annual').textContent = fmt(tax);
+  document.getElementById('tax-monthly').textContent = fmt(tax/12);
+  document.getElementById('tax-chargeable').textContent = fmt(chargeable);
+  document.getElementById('tax-eff-rate').textContent = effRate.toFixed(2)+'%';
+  document.getElementById('tax-reliefs').textContent = fmt(reliefs);
+  document.getElementById('tax-bracket').textContent = bracket;
+  // Bands
+  let bandsHTML = '';
+  for (const [lo,hi,rate] of TAX_BANDS) {
+    if (chargeable <= lo) break;
+    const taxable = Math.min(chargeable-lo, hi-lo);
+    const bandTax = taxable * rate/100;
+    const isActive = chargeable > lo && chargeable <= hi;
+    bandsHTML += `<div class="band-row${isActive?' active-band':''}">
+      <div><div>${rate}%</div><div class="band-range">RM ${lo.toLocaleString()} – ${hi===Infinity?'above':('RM '+hi.toLocaleString())}</div></div>
+      <div class="band-rate">RM ${fmtNum(bandTax)}</div></div>`;
+  }
+  document.getElementById('tax-bands').innerHTML = bandsHTML;
+  document.getElementById('tax-result').style.display='block';
+}
+
+// ============ SST ============
+let sstModeVal = 'add';
+function setSSTMode(m,el) { sstModeVal=m; document.querySelectorAll('#panel-sst .toggle-opt').forEach(e=>e.classList.remove('active')); el.classList.add('active'); }
+document.getElementById('sst-rate').addEventListener('change',function(){ document.getElementById('sst-custom-wrap').style.display=this.value==='custom'?'block':'none'; });
+function calcSST() {
+  const rate = document.getElementById('sst-rate').value==='custom' ? parseFloat(document.getElementById('sst-custom-rate').value)||0 : parseFloat(document.getElementById('sst-rate').value);
+  const amount = parseFloat(document.getElementById('sst-amount').value)||0;
+  if (!amount) { showToast('Enter an amount'); return; }
+  let original, taxAmt, total;
+  if (sstModeVal === 'add') { original=amount; taxAmt=amount*rate/100; total=amount+taxAmt; document.getElementById('sst-result-label').textContent='Total with '+rate+'% Tax'; }
+  else { total=amount; original=amount/(1+rate/100); taxAmt=amount-original; document.getElementById('sst-result-label').textContent='Price before '+rate+'% Tax'; }
+  document.getElementById('sst-total').textContent = fmt(sstModeVal==='add'?total:original);
+  document.getElementById('sst-original').textContent = fmt(original);
+  document.getElementById('sst-tax-amount').textContent = fmt(taxAmt);
+  document.getElementById('sst-result').style.display='block';
+}
+
+// ============ FUEL ============
+function applyFuelConsumptionPreset() {
+  const v = document.getElementById('fuel-consumption-preset').value;
+  if (v !== 'custom') document.getElementById('fuel-consumption').value = v;
+}
+function calcFuel() {
+  const price = parseFloat(document.getElementById('fuel-price').value)||0;
+  const dist = parseFloat(document.getElementById('fuel-distance').value)||0;
+  const cons = parseFloat(document.getElementById('fuel-consumption').value)||0;
+  const trips = parseFloat(document.getElementById('fuel-trips').value)||0;
+  if (!price||!dist||!cons) { showToast('Fill in all fields'); return; }
+  const litres = dist * cons/100;
+  const perTrip = litres * price;
+  const monthly = perTrip * trips;
+  document.getElementById('fuel-per-trip').textContent = fmt(perTrip);
+  document.getElementById('fuel-litres').textContent = litres.toFixed(2)+'L';
+  document.getElementById('fuel-monthly').textContent = fmt(monthly);
+  document.getElementById('fuel-annual').textContent = fmt(monthly*12);
+  document.getElementById('fuel-per-km').textContent = 'RM '+(perTrip/dist).toFixed(3)+'/km';
+  document.getElementById('fuel-result').style.display='block';
+}
+
+// ============ EPF ============
+function applyEpfPreset() {
+  const v = document.getElementById('epf-age-preset').value;
+  if (v !== 'custom') document.getElementById('epf-age').value = v;
+}
+function calcEpf() {
+  const age = parseInt(document.getElementById('epf-age').value)||0;
+  const salary = parseFloat(document.getElementById('epf-salary').value)||0;
+  let balance = parseFloat(document.getElementById('epf-balance').value)||0;
+  const divOpt = document.getElementById('epf-dividend').value;
+  const div = divOpt==='custom' ? 0.055 : parseFloat(divOpt)/100;
+  const increment = parseFloat(document.getElementById('epf-increment').value)||3;
+  if (!age||!salary) { showToast('Enter age and salary'); return; }
+  const years = Math.max(0, 60 - age);
+  let curSalary = salary, totalContrib = 0;
+  const startBalance = balance;
+  for (let y=0; y<years; y++) {
+    const monthlyEE = curSalary * 0.11;
+    const monthlyER = curSalary <= 5000 ? curSalary * 0.13 : curSalary * 0.12;
+    const yearlyContrib = (monthlyEE + monthlyER) * 12;
+    totalContrib += yearlyContrib;
+    balance = (balance + yearlyContrib) * (1 + div);
+    curSalary *= (1 + increment/100);
+  }
+  const monthlyContrib = salary * (0.11 + (salary<=5000?0.13:0.12));
+  document.getElementById('epf-projected').textContent = fmt(balance);
+  document.getElementById('epf-monthly-contrib').textContent = fmt(monthlyContrib);
+  document.getElementById('epf-years').textContent = years+' years';
+  document.getElementById('epf-total-contrib').textContent = fmt(totalContrib);
+  document.getElementById('epf-dividend-growth').textContent = fmt(balance - startBalance - totalContrib);
+  const monthlyAtRetire = balance / (20*12);
+  document.getElementById('epf-tip').textContent = `Your projected RM ${fmtNum(balance)} can give you approximately ${fmt(monthlyAtRetire)}/month for 20 years after retirement. Consider topping up voluntarily (i-Saraan) to increase this.`;
+  document.getElementById('epf-result').style.display='block';
+}
+
+// ============ PTPTN ============
+function applyPtptnPreset() {
+  const presets = {diploma:20000,degree:40000,master:30000,private:80000};
+  const v = document.getElementById('ptptn-preset').value;
+  if (presets[v]) document.getElementById('ptptn-balance').value = presets[v];
+}
+function calcPtptn() {
+  const balance = parseFloat(document.getElementById('ptptn-balance').value)||0;
+  const rate = parseFloat(document.getElementById('ptptn-rate').value)||1;
+  const payment = parseFloat(document.getElementById('ptptn-payment').value)||0;
+  const extra = parseFloat(document.getElementById('ptptn-extra').value)||0;
+  if (!balance||!payment) { showToast('Enter balance and payment'); return; }
+  const mr = rate/100/12;
+  let bal=balance, months=0, totalPaid=0;
+  while (bal > 0 && months < 600) {
+    const interest = bal * mr;
+    const prinPay = Math.min(payment+extra-interest, bal);
+    if (payment+extra <= interest) { showToast('Payment too low to cover interest'); return; }
+    totalPaid += payment+extra;
+    bal -= prinPay;
+    months++;
+  }
+  // Without extra
+  let bal2=balance, months2=0, totalPaid2=0;
+  while (bal2 > 0 && months2 < 600) {
+    const interest2 = bal2 * mr;
+    totalPaid2 += payment;
+    bal2 -= (payment - interest2);
+    months2++;
+  }
+  const saved = totalPaid2 - totalPaid;
+  const payoffDate = new Date(); payoffDate.setMonth(payoffDate.getMonth()+months);
+  document.getElementById('ptptn-months').textContent = Math.floor(months/12)+'y '+months%12+'m';
+  document.getElementById('ptptn-total').textContent = fmt(totalPaid);
+  document.getElementById('ptptn-interest').textContent = fmt(totalPaid-balance);
+  document.getElementById('ptptn-date').textContent = payoffDate.toLocaleDateString('en-MY',{month:'short',year:'numeric'});
+  document.getElementById('ptptn-saved').textContent = extra>0 ? fmt(saved) : 'RM 0.00';
+  document.getElementById('ptptn-tip').textContent = extra>0 ? `Paying RM ${fmtNum(extra)} extra/month saves you ${fmt(saved)} in interest and finishes ${Math.round((months2-months)/12*10)/10} years earlier.` : 'Try adding extra monthly payment to see how much interest you can save.';
+  document.getElementById('ptptn-result').style.display='block';
+}
+
+// ============ BMI ============
+let bmiGenderVal = 'male', bmiUnitVal = 'metric';
+function setBMIUnit(u,el) { bmiUnitVal=u; document.querySelectorAll('#panel-bmi .toggle-opt').forEach(e=>e.classList.remove('active')); el.classList.add('active'); document.getElementById('bmi-weight').placeholder=u==='metric'?'70':'154'; document.getElementById('bmi-height').placeholder=u==='metric'?'170':'67'; document.getElementById('bmi-weight').previousElementSibling.textContent=u==='metric'?'Weight (kg)':'Weight (lbs)'; document.getElementById('bmi-height').previousElementSibling.textContent=u==='metric'?'Height (cm)':'Height (inches)'; }
+function setBMIGender(g,el) { bmiGenderVal=g; }
+function calcBMI() {
+  let w = parseFloat(document.getElementById('bmi-weight').value)||0;
+  let h = parseFloat(document.getElementById('bmi-height').value)||0;
+  const age = parseInt(document.getElementById('bmi-age').value)||25;
+  const activity = parseFloat(document.getElementById('bmi-activity').value);
+  if (bmiUnitVal==='imperial') { w*=0.453592; h*=2.54; }
+  if (!w||!h) { showToast('Enter weight and height'); return; }
+  const hm = h/100;
+  const bmi = w/(hm*hm);
+  let cat='', color=var_accent;
+  if (bmi<18.5) {cat='Underweight';color='#4d9fff';}
+  else if (bmi<23) {cat='Normal (Asian standard)';color='#00d68f';}
+  else if (bmi<27.5) {cat='Overweight';color='#ffc107';}
+  else {cat='Obese';color='#ff6b6b';}
+  const bmr = bmiGenderVal==='male' ? 10*w+6.25*h-5*age+5 : 10*w+6.25*h-5*age-161;
+  const tdee = bmr*activity;
+  const idealLow = 18.5*hm*hm, idealHigh = 22.9*hm*hm;
+  document.getElementById('bmi-value').textContent = bmi.toFixed(1);
+  document.getElementById('bmi-value').style.color = color;
+  document.getElementById('bmi-cat').innerHTML = `<span style="color:${color}">${cat}</span>`;
+  document.getElementById('bmi-ideal').textContent = fmtNum(idealLow)+'–'+fmtNum(idealHigh)+' kg';
+  document.getElementById('bmi-bmr').textContent = Math.round(bmr)+' kcal';
+  document.getElementById('bmi-calories').textContent = Math.round(tdee)+' kcal';
+  document.getElementById('bmi-lose').textContent = Math.round(tdee-500)+' kcal';
+  document.getElementById('bmi-result').style.display='block';
+}
+function var_accent() { return '#00d68f'; }
+
+// ============ BILL SPLITTER ============
+function applyBillPreset() {
+  const p = document.getElementById('bill-preset').value;
+  if (p==='mamak') { document.getElementById('bill-service').value=0; document.getElementById('bill-sst').value=0; }
+  else if (p==='casual') { document.getElementById('bill-service').value=10; document.getElementById('bill-sst').value=0; }
+  else if (p==='fine') { document.getElementById('bill-service').value=10; document.getElementById('bill-sst').value=6; }
+}
+function calcBill() {
+  const amount = parseFloat(document.getElementById('bill-amount').value)||0;
+  const svc = parseFloat(document.getElementById('bill-service').value)||0;
+  const sst = parseFloat(document.getElementById('bill-sst').value)||0;
+  const tip = parseFloat(document.getElementById('bill-tip').value)||0;
+  const people = parseInt(document.getElementById('bill-people').value)||4;
+  if (!amount) { showToast('Enter bill amount'); return; }
+  const svcAmt = amount*svc/100;
+  const sstAmt = (amount+svcAmt)*sst/100;
+  const tipAmt = amount*tip/100;
+  const total = amount+svcAmt+sstAmt+tipAmt;
+  const perPerson = total/people;
+  document.getElementById('bill-per-person').textContent = fmt(perPerson);
+  document.getElementById('bill-sub').textContent = fmt(amount);
+  document.getElementById('bill-svc').textContent = fmt(svcAmt);
+  document.getElementById('bill-sst-amt').textContent = fmt(sstAmt);
+  document.getElementById('bill-total').textContent = fmt(total);
+  document.getElementById('bill-result').style.display='block';
+}
+
+// ============ DISCOUNT ============
+function setDiscMode(m,el) { discMode=m; document.querySelectorAll('#panel-discount .toggle-opt').forEach(e=>e.classList.remove('active')); el.classList.add('active'); }
+function calcDiscount() {
+  const price = parseFloat(document.getElementById('disc-price').value)||0;
+  const pct = parseFloat(document.getElementById('disc-pct').value)||0;
+  if (!price) { showToast('Enter price'); return; }
+  let final, save, label;
+  if (discMode==='discount') { save=price*pct/100; final=price-save; label='Final Price'; }
+  else { save=price*pct/100; final=price+save; label='Marked Up Price'; }
+  document.getElementById('disc-result-label').textContent=label;
+  document.getElementById('disc-final').textContent=fmt(final);
+  document.getElementById('disc-orig-show').textContent=fmt(price);
+  document.getElementById('disc-save').textContent=fmt(save);
+  document.getElementById('discount-result').style.display='block';
+}
+
+// ============ DATE ============
+function setDateMode(m,el) { dateMode=m; document.querySelectorAll('#panel-date .toggle-opt').forEach(e=>e.classList.remove('active')); el.classList.add('active'); }
+function calcDate() {
+  const s = new Date(document.getElementById('date-start').value);
+  const e = new Date(document.getElementById('date-end').value);
+  if (!s||!e||isNaN(s)||isNaN(e)) { showToast('Enter valid dates'); return; }
+  const diff = Math.abs(e-s);
+  const days = Math.floor(diff/86400000);
+  const weeks = Math.floor(days/7);
+  const months = Math.floor(days/30.44);
+  const years = Math.floor(days/365.25);
+  document.getElementById('date-result-label').textContent='Days Between';
+  document.getElementById('date-result-val').textContent=days+' days';
+  document.getElementById('date-result-grid').innerHTML=`
+    <div class="result-item"><div class="result-item-label">Weeks</div><div class="result-item-value">${weeks}</div></div>
+    <div class="result-item"><div class="result-item-label">Months</div><div class="result-item-value">${months}</div></div>
+    <div class="result-item"><div class="result-item-label">Years</div><div class="result-item-value">${years}</div></div>
+    <div class="result-item"><div class="result-item-label">Weekdays est.</div><div class="result-item-value">${Math.round(days*5/7)}</div></div>`;
+  document.getElementById('date-result').style.display='block';
+}
+
+// ============ UNIT CONVERTER ============
+const UNITS = {
+  length:{Kilometer:{km:1},Meter:{km:0.001},Centimeter:{km:0.00001},Mile:{km:1.60934},Yard:{km:0.0009144},Foot:{km:0.0003048},Inch:{km:0.0000254}},
+  weight:{Kilogram:{kg:1},Gram:{kg:0.001},Pound:{kg:0.453592},Ounce:{kg:0.0283495},Tonne:{kg:1000}},
+  temp:{Celsius:{special:'C'},Fahrenheit:{special:'F'},Kelvin:{special:'K'}},
+  volume:{Liter:{l:1},Milliliter:{l:0.001},Gallon:{l:3.78541},Cup:{l:0.236588},Tablespoon:{l:0.0147868}},
+  area:{'Square Meter':{sqm:1},'Square Kilometer':{sqm:1e6},'Hectare':{sqm:1e4},'Square Foot':{sqm:0.092903},'Acre':{sqm:4046.86}},
+  speed:{'km/h':{kph:1},'m/s':{kph:3.6},'mph':{kph:1.60934},'Knot':{kph:1.852}}
+};
+function updateUnitOptions() {
+  const cat = document.getElementById('unit-cat').value;
+  const keys = Object.keys(UNITS[cat]);
+  const fromSel = document.getElementById('unit-from');
+  const toSel = document.getElementById('unit-to');
+  fromSel.innerHTML = keys.map(k=>`<option>${k}</option>`).join('');
+  toSel.innerHTML = keys.map((k,i)=>`<option${i===1?' selected':''}>${k}</option>`).join('');
+  fromSel.addEventListener('change', calcUnit);
+  calcUnit();
+}
+function calcUnit() {
+  const cat = document.getElementById('unit-cat').value;
+  const from = document.getElementById('unit-from').value;
+  const to = document.getElementById('unit-to').value;
+  const val = parseFloat(document.getElementById('unit-value').value)||0;
+  let result;
+  if (cat === 'temp') {
+    if (from==='Celsius'&&to==='Fahrenheit') result=val*9/5+32;
+    else if (from==='Fahrenheit'&&to==='Celsius') result=(val-32)*5/9;
+    else if (from==='Celsius'&&to==='Kelvin') result=val+273.15;
+    else if (from==='Kelvin'&&to==='Celsius') result=val-273.15;
+    else if (from==='Fahrenheit'&&to==='Kelvin') result=(val-32)*5/9+273.15;
+    else if (from==='Kelvin'&&to==='Fahrenheit') result=(val-273.15)*9/5+32;
+    else result=val;
+  } else {
+    const units = UNITS[cat];
+    const baseKey = Object.keys(Object.values(units)[0])[0];
+    const toBase = val * (Object.values(units[from])[0]);
+    result = toBase / (Object.values(units[to])[0]);
+  }
+  document.getElementById('unit-result-val').textContent = (parseFloat(result.toFixed(8))).toLocaleString('en-MY') + ' ' + to;
+  document.getElementById('unit-result').style.display = 'block';
+}
+</script>
+</body>
+</html>
