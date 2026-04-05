@@ -1,16 +1,28 @@
 {
   "name": "CalcMY — Smart Finance Calculator",
   "short_name": "CalcMY",
-  "description": "Malaysian finance calculator — EPF, PTPTN, PCB Tax, Salary, Loan, Fuel & more. Works offline.",
+  "description": "Global finance calculator — Tax, Salary, Loan, Fuel, Bill Splitter & more. Supports MY, US, and UK. Works offline.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0f1117",
   "theme_color": "#0f1117",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ],
-  "categories": ["finance", "utilities", "productivity"],
-  "lang": "en-MY"
+  "categories": [
+    "finance",
+    "utilities",
+    "productivity"
+  ],
+  "lang": "en"
 }
