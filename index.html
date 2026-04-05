@@ -422,6 +422,47 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 <div class="toast" id="toast"></div>
 
 <script>
+
+  // ==================== AUTO-UPDATE FUEL PRICES ====================
+async function fetchLatestFuelPrices() {
+  // Replace this URL with your RAW GitHub Gist URL
+  const FUEL_API_URL = 'https://gist.githubusercontent.com/YOUR_USERNAME/YOUR_GIST_ID/raw/fuel.json';
+  
+  try {
+    const response = await fetch(FUEL_API_URL);
+    if (!response.ok) throw new Error('Network response was not ok');
+    
+    const latestData = await response.json();
+    
+    // Check if the online prices are different from what we have saved
+    let currentSaved = JSON.parse(localStorage.getItem('calcmy_fuel') || '{}');
+    
+    if (latestData.updated !== currentSaved.updated) {
+      // Save the new prices to local storage
+      localStorage.setItem('calcmy_fuel', JSON.stringify(latestData));
+      
+      // Update the UI immediately
+      document.getElementById('header-ron95').textContent = currency + latestData.ron95.toFixed(2);
+      
+      // Update modal inputs if they exist
+      if (document.getElementById('modal-f1')) {
+        document.getElementById('modal-f1').value = latestData.ron95;
+        document.getElementById('modal-f2').value = latestData.ron97;
+      }
+      
+      showToast('Fuel prices auto-updated to latest! ⛽');
+    }
+  } catch (error) {
+    console.log("Failed to fetch fuel prices, using offline cached version.", error);
+  }
+}
+
+// Run the check quietly in the background when the app loads
+window.addEventListener('load', () => {
+  if(navigator.onLine) {
+    fetchLatestFuelPrices();
+  }
+});
 // ==================== STATE & CONFIG ====================
 let currency = 'RM ';
 let region = localStorage.getItem('calcmy_region') || 'MY';
